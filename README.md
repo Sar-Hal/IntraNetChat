@@ -1,30 +1,29 @@
-# Wi-Fi LAN Chat (Simple Prototype)
+# IntraNetChat (College Wi-Fi LAN Chat)
 
-This is a lightweight messaging server/client you can run on the same local network (for example, your college Wi-Fi).
+Simple local-network chat app for one host and multiple clients.
 
-## Features
+## Important model
 
-- Multi-user chat over TCP
-- Nicknames (`/nick yourname`)
-- Online users list (`/list`)
-- Private message (`/msg username hello`)
-- Exit command (`/quit`)
-- Stop server command (`/shutdown`)
+- Only **one host** runs `server.py`.
+- All other devices run `client.py` and connect to the host IP.
+- Everyone must be on the same Wi-Fi network.
 
 ## Requirements
 
 - Python 3.10+
-- All devices must be on the same network and allowed to reach your laptop's port
+- Devices must be allowed to reach host TCP port (default `9090`)
 
-## 1) Start server on your laptop
+## Host setup (only one person does this)
+
+### 1) Start the server
+
+From this project folder:
 
 ```bash
 python server.py --host 0.0.0.0 --port 9090
 ```
 
-Run from this repository folder (`IntraNetChat`).
-
-## 2) Find your laptop IP
+### 2) Find host IP address
 
 On Windows PowerShell:
 
@@ -32,31 +31,56 @@ On Windows PowerShell:
 ipconfig
 ```
 
-Use your Wi-Fi IPv4 address, for example `10.x.x.x` or `192.168.x.x`.
+Share the Wi-Fi IPv4 address (example: `10.x.x.x` or `192.168.x.x`) with clients.
 
-## 3) Allow inbound firewall rule (if needed)
+### 3) Open firewall (if needed)
 
-Open Windows Defender Firewall and allow inbound TCP port `9090` for your current network profile.
+Allow inbound TCP `9090` in Windows Defender Firewall for your current network profile.
 
-## 4) Connect from each friend device
+### 4) Stop the server
+
+- In host terminal: `Ctrl + C`
+- Or from any connected client: `/shutdown`
+
+## Client setup (everyone else)
+
+### Option A: Connect directly from command line
 
 ```bash
-python client.py --host <YOUR_LAPTOP_IP> --port 9090
+python client.py --host <HOST_IP> --port 9090
 ```
 
-Examples after connecting:
+### Option B: Open GUI first, connect inside UI
 
-```text
-/nick lena
-/list
-/msg sam Hey, are you in class?
-Hello everyone!
-/shutdown
-/quit
+```bash
+python client.py
 ```
 
-## Notes for college Wi-Fi
+Then enter host and port in the app and click **Connect**.
 
-- Some campuses block peer-to-peer traffic (client-to-client/laptop ports). If your friends cannot connect, ask IT whether local LAN traffic is restricted.
-- If blocked, deploy the server on a cloud VM/VPS and let everyone connect to that public IP.
-- Do not send sensitive data: this prototype uses plain TCP (no encryption/auth).
+## Client UI usage
+
+- **Set nickname**: enter name in `Nick` and click **Set Nick**
+- **Send public message**: type in `Message` and click **Send**
+- **Send private message**: set `DM To` + `Text`, click **Send DM**
+- **View users**: click **List Users**
+- **Leave chat**: click **Quit**
+
+## Protocol commands (supported by server)
+
+- `/nick <name>`
+- `/list`
+- `/msg <user> <text>`
+- `/quit`
+- `/shutdown`
+
+## Troubleshooting (college Wi-Fi)
+
+- If clients cannot connect, campus Wi-Fi may block peer-to-peer LAN traffic.
+- Verify host IP and port are correct.
+- Verify firewall allows inbound port `9090`.
+- If LAN is blocked, run server on a cloud VM/VPS and connect via public IP.
+
+## Security note
+
+This prototype uses plain TCP (no encryption/authentication). Do not share sensitive data.
