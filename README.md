@@ -9,6 +9,7 @@ This is a lightweight messaging server/client you can run on the same local netw
 - Online users list (`/list`)
 - Private message (`/msg username hello`)
 - Exit command (`/quit`)
+- Stop server command (`/shutdown`)
 
 ## Requirements
 
@@ -50,6 +51,7 @@ Examples after connecting:
 /list
 /msg sam Hey, are you in class?
 Hello everyone!
+/shutdown
 /quit
 ```
 

@@ -17,7 +17,7 @@ def receive_loop(sock: socket.socket, stop_event: threading.Event) -> None:
             buffer += data.decode("utf-8", errors="replace")
             while "\n" in buffer:
                 line, buffer = buffer.split("\n", 1)
-                print(f"\r{line}\n> ", end="", flush=True)
+                print(f"\n{line}", flush=True)
         except OSError:
             stop_event.set()
             break
@@ -41,7 +41,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"[INFO] Connected to {args.host}:{args.port}")
-    print("[INFO] Commands: /nick <name>, /list, /msg <user> <text>, /quit")
+    print("[INFO] Commands: /nick <name>, /list, /msg <user> <text>, /quit, /shutdown")
 
     stop_event = threading.Event()
     receiver = threading.Thread(target=receive_loop, args=(sock, stop_event), daemon=True)

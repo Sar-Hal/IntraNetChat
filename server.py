@@ -19,17 +19,59 @@ class ChatServer:
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.clients: dict[socket.socket, Client] = {}
         self.lock = threading.Lock()
+        self.running = threading.Event()
+        self.running.set()
 
     def start(self) -> None:
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(50)
+        self.server_socket.settimeout(1.0)
         print(f"[SERVER] Listening on {self.host}:{self.port}")
-        print("[SERVER] Commands: /nick <name>, /list, /msg <user> <text>, /quit")
+        print("[SERVER] Commands: /nick <name>, /list, /msg <user> <text>, /quit, /shutdown")
 
-        while True:
-            conn, addr = self.server_socket.accept()
-            thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
-            thread.start()
+        try:
+            while self.running.is_set():
+                try:
+                    conn, addr = self.server_socket.accept()
+                except socket.timeout:
+                    continue
+                except OSError:
+                    break
+
+                thread = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
+                thread.start()
+        finally:
+            self.shutdown("Server stopped.")
+
+    def shutdown(self, reason: str) -> None:
+        if not self.running.is_set():
+            return
+
+        self.running.clear()
+        print(f"[SERVER] Shutdown requested: {reason}")
+
+        with self.lock:
+            clients = list(self.clients.keys())
+            self.clients.clear()
+
+        for conn in clients:
+            try:
+                self.send_line(conn, f"[INFO] Server is shutting down: {reason}")
+            except OSError:
+                pass
+            try:
+                conn.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                conn.close()
+            except OSError:
+                pass
+
+        try:
+            self.server_socket.close()
+        except OSError:
+            pass
 
     def send_line(self, conn: socket.socket, message: str) -> None:
         conn.sendall((message + "\n").encode("utf-8"))
@@ -111,6 +153,11 @@ class ChatServer:
         if line == "/list":
             return self.list_users()
 
+        if line == "/shutdown":
+            self.send_line(conn, "[OK] Shutting down server.")
+            self.shutdown("Requested by a client.")
+            return None
+
         if line.startswith("/msg "):
             parts = line.split(" ", 2)
             if len(parts) < 3:
@@ -130,6 +177,13 @@ class ChatServer:
         return None
 
     def handle_client(self, conn: socket.socket, addr: tuple[str, int]) -> None:
+        if not self.running.is_set():
+            try:
+                conn.close()
+            except OSError:
+                pass
+            return
+
         nick = f"user{addr[1]}"
         with self.lock:
             self.clients[conn] = Client(conn=conn, addr=addr, nick=nick)
@@ -141,7 +195,7 @@ class ChatServer:
 
         buffer = ""
         try:
-            while True:
+            while self.running.is_set():
                 data = conn.recv(4096)
                 if not data:
                     break
@@ -153,12 +207,13 @@ class ChatServer:
                     if not line:
                         continue
                     response = self.handle_command(conn, line)
-                    if response is not None:
+                    if response is not None and self.running.is_set():
                         self.send_line(conn, response)
         except OSError:
             pass
         finally:
-            self.remove_client(conn)
+            if self.running.is_set():
+                self.remove_client(conn)
 
 
 def parse_args() -> argparse.Namespace:
