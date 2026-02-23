@@ -1,4 +1,4 @@
-# IntraNetChat (College Wi-Fi LAN Chat)
+# IntraNetChat (Wi-Fi LAN Chat)
 
 Simple local-network chat app for one host and multiple clients.
 
